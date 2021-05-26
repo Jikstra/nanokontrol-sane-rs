@@ -1,5 +1,5 @@
 [package]
-name = "midimonitor-rs"
+name = "nanokontrol-sane"
 version = "0.1.0"
 authors = ["kerle"]
 edition = "2018"

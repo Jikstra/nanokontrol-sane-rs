@@ -18,7 +18,7 @@ fn main() {
     let log = Logger::new(None);
     
     let (client, _status) =
-        jack::Client::new("midimonitor", jack::ClientOptions::NO_START_SERVER).unwrap();
+        jack::Client::new("nanokontrol-sanitizer", jack::ClientOptions::NO_START_SERVER).unwrap();
 
     
     let in_midi = client
@@ -37,7 +37,30 @@ fn main() {
         let mut out_midi_writer = out_midi.writer(ps);
 
         for midi_message in midi_iter {
-            let _ = out_midi_writer.write(&midi_message);
+            if midi_message.bytes[1] != midi_message.bytes[2] {
+                continue
+            }
+            let bytes = {
+                if midi_message.bytes[0] >= 224 {
+                    [
+                            191,
+                            midi_message.bytes[0] - 223,
+                            midi_message.bytes[2]
+                    ]
+                } else {
+                    [
+                        191,
+                        midi_message.bytes[0],
+                        midi_message.bytes[2]
+                    ]
+                }
+            }; 
+            let sanitized = jack::RawMidi {
+                time: midi_message.time, 
+                bytes: &bytes
+            };
+
+            let _ = out_midi_writer.write(&sanitized);
             
             let midi_copy: MidiCopy = midi_message.into();
             let _ = sender.try_send(midi_copy);
@@ -76,7 +99,7 @@ pub fn start_midi_monitor_thread(log: Logger, receiver: Receiver<jack_midi::Midi
     let midi_log = log.sub("midi".to_string());
     std::thread::spawn(move || {
         while let Ok(m) = receiver.recv() {
-            midi_log.info(format!("{:#04X?} {:#04X?} {:#04X?}", m.data[0], m.data[1], m.data[2]));
+            midi_log.info(format!("{} {:#04X?} {:#04X?}", m.data[0], m.data[1], m.data[2]));
         }
     });
 }

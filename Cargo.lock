@@ -74,7 +74,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "midimonitor-rs"
+name = "nanokontrol-sane"
 version = "0.1.0"
 dependencies = [
  "ctrlc",
